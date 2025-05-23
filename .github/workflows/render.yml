@@ -10,30 +10,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      # ---- R + system deps -------------------------------------------------
-      - uses: r-lib/actions/setup-r@v2
+      # ── R + system deps ────────────────────────────────────────────────
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
 
       - name: System libraries
-        run: sudo apt-get update -y && sudo apt-get install -y \
-             libxml2-dev libfreetype6-dev libpng-dev libtiff5-dev \
-             libjpeg-dev libharfbuzz-dev libfribidi-dev libfontconfig1-dev
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libxml2-dev libfreetype6-dev libpng-dev libtiff5-dev \
+            libjpeg-dev libharfbuzz-dev libfribidi-dev libfontconfig1-dev
 
       - name: Install R packages
+        shell: Rscript {0}
         run: |
           install.packages(c(
             "rmarkdown","flexdashboard","DT",
             "readr","dplyr","tidyr","stringr",
-            "ggplot2","scales","emmeans","ggpubr"),
-            repos = "https://cloud.r-project.org")
-        shell: Rscript {0}
+            "ggplot2","scales","emmeans","ggpubr"
+          ), repos = "https://cloud.r-project.org")
 
-      # ---- render every *.Rmd under projects/ -----------------------------
+      # ── render every *.Rmd under projects/ ────────────────────────────
       - name: Render dashboards
         run: |
           Rscript - <<'RSCRIPT'
-            fs <- list.files("projects", pattern="\\.Rmd$", recursive=TRUE, full.names=TRUE)
+            fs <- list.files("projects", pattern = "\\\\.Rmd$", recursive = TRUE, full.names = TRUE)
             for (f in fs) {
               out_dir <- file.path("docs", dirname(sub("^projects/", "", f)))
               dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -42,34 +46,33 @@ jobs:
             }
 RSCRIPT
 
-      # ---- create index.html at project root ------------------------------
+      # ── create index.html files ───────────────────────────────────────
       - name: Build index pages
-        run: Rscript - <<'RSCRIPT'
-          make_index <- function(base, title) {
-            items <- list.dirs(base, full.names = FALSE, recursive = FALSE)
-            html  <- c(sprintf("<h2>%s</h2><ul>", title))
-            for (it in items) {
-              link <- file.path(it, "index.html")
-              if (file.exists(file.path(base, it, "dashboard.html")))
+        run: |
+          Rscript - <<'RSCRIPT'
+            make_index <- function(base, title) {
+              items <- list.dirs(base, full.names = FALSE, recursive = FALSE)
+              html  <- c(sprintf("<h2>%s</h2><ul>", title))
+              for (it in items) {
                 link <- file.path(it, "dashboard.html")
-              html <- c(html, sprintf('<li><a href="%s">%s</a></li>', link, it))
-              # recursion: create sub-index for experiments
-              if (base == "docs")
-                make_index(file.path(base, it), it)
+                if (!file.exists(file.path(base, it, "dashboard.html")))
+                  link <- file.path(it, "index.html")
+                html <- c(html, sprintf('<li><a href="%s">%s</a></li>', link, it))
+                if (base == "docs")            # recurse only one level
+                  make_index(file.path(base, it), it)
+              }
+              html <- c(html, "</ul>")
+              writeLines(html, file.path(base, "index.html"))
             }
-            html <- c(html, "</ul>")
-            writeLines(html, file.path(base, "index.html"))
-          }
-          dir.create("docs", showWarnings = FALSE)
-          make_index("docs", "Projects")
+            dir.create("docs", showWarnings = FALSE)
+            make_index("docs", "Projects")
 RSCRIPT
 
-      # ---- commit site back to repo ---------------------------------------
+      # ── commit rendered site back to main branch ──────────────────────
       - name: Commit & push rendered site
         run: |
           git config user.name  github-actions
           git config user.email github-actions@github.com
           git add docs
-          git commit -m "Render site" || echo "nothing to commit"
+          git commit -m "Render site" || echo "Nothing to commit"
           git push
-

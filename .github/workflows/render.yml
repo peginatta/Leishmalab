@@ -10,10 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      # --- 1. check out repo ------------------------------------------------
+      - name: Checkout
         uses: actions/checkout@v3
 
-      # ── R + system deps ────────────────────────────────────────────────
+      # --- 2. set up R & system libs ----------------------------------------
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
 
@@ -33,43 +34,41 @@ jobs:
             "ggplot2","scales","emmeans","ggpubr"
           ), repos = "https://cloud.r-project.org")
 
-      # ── render every *.Rmd under projects/ ────────────────────────────
+      # --- 3. render every *.Rmd under projects/ ----------------------------
       - name: Render dashboards
+        shell: bash
         run: |
-          Rscript - <<'RSCRIPT'
-            fs <- list.files("projects", pattern = "\\\\.Rmd$", recursive = TRUE, full.names = TRUE)
-            for (f in fs) {
-              out_dir <- file.path("docs", dirname(sub("^projects/", "", f)))
+          R -q -e "
+            files <- list.files('projects', pattern='\\\\.Rmd$', recursive=TRUE, full.names=TRUE)
+            for (f in files) {
+              out_dir <- file.path('docs', dirname(sub('^projects/', '', f)))
               dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-              message("Rendering ", f, " -> ", out_dir)
+              message('Rendering ', f, ' -> ', out_dir)
               rmarkdown::render(f, output_dir = out_dir, quiet = TRUE)
-            }
-RSCRIPT
+            }"
 
-      # ── create index.html files ───────────────────────────────────────
+      # --- 4. create index.html pages ---------------------------------------
       - name: Build index pages
+        shell: Rscript {0}
         run: |
-          Rscript - <<'RSCRIPT'
-            make_index <- function(base, title) {
-              items <- list.dirs(base, full.names = FALSE, recursive = FALSE)
-              html  <- c(sprintf("<h2>%s</h2><ul>", title))
-              for (it in items) {
-                link <- file.path(it, "dashboard.html")
-                if (!file.exists(file.path(base, it, "dashboard.html")))
-                  link <- file.path(it, "index.html")
-                html <- c(html, sprintf('<li><a href="%s">%s</a></li>', link, it))
-                if (base == "docs")            # recurse only one level
-                  make_index(file.path(base, it), it)
-              }
-              html <- c(html, "</ul>")
-              writeLines(html, file.path(base, "index.html"))
+          dir.create('docs', showWarnings = FALSE)
+          make_index <- function(base, title) {
+            items <- list.dirs(base, full.names = FALSE, recursive = FALSE)
+            html  <- c(sprintf('<h2>%s</h2><ul>', title))
+            for (it in items) {
+              link <- file.path(it, 'dashboard.html')
+              if (!file.exists(file.path(base, it, 'dashboard.html')))
+                link <- file.path(it, 'index.html')
+              html <- c(html, sprintf('<li><a href=\"%s\">%s</a></li>', link, it))
+              if (base == 'docs') make_index(file.path(base, it), it)  # one-level recursion
             }
-            dir.create("docs", showWarnings = FALSE)
-            make_index("docs", "Projects")
-RSCRIPT
+            html <- c(html, '</ul>')
+            writeLines(html, file.path(base, 'index.html'))
+          }
+          make_index('docs', 'Projects')
 
-      # ── commit rendered site back to main branch ──────────────────────
-      - name: Commit & push rendered site
+      # --- 5. commit rendered site back to main -----------------------------
+      - name: Commit & push site
         run: |
           git config user.name  github-actions
           git config user.email github-actions@github.com

@@ -2,8 +2,15 @@ name: Render all dashboards
 
 on:
   push:
-    paths: ["projects/**/*.Rmd"]
+    paths:
+      - "projects/**/*.Rmd"
+      - ".github/workflows/render.yml"
   workflow_dispatch:
+
+# ⇣⇣⇣ ADD THIS ⇣⇣⇣
+permissions:
+  contents: write    # allow git push
+# ⇡⇡⇡ ADD THIS ⇡⇡⇡
 
 jobs:
   build-site:

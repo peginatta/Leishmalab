@@ -40,7 +40,6 @@ jobs:
               message("Rendering ", f, " -> ", out_dir)
               rmarkdown::render(f, output_dir = out_dir, quiet = TRUE)
             }
-
       - name: Build index pages
         run: Rscript - <<'RSCRIPT'
           make_index <- function(base, title) {
@@ -60,8 +59,6 @@ jobs:
           }
           dir.create("docs", showWarnings = FALSE)
           make_index("docs", "Projects")
-
-
       - name: Commit & push rendered site
         run: |
           git config user.name  github-actions

@@ -1,0 +1,53 @@
+---
+title: "Leishmania Quantification Dashboard"
+output:
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)   # auto-loaded when knitting
+library(DT)              # interactive tables
+
+source("analysis_functions.R", local = TRUE)
+
+# ---- run pipeline -------------------------------------------------------
+# change the file name below if you want to knit another CSV
+data <- run_pipeline("amastigote_raw_c7c3c5c6.csv")
+
+rep_df     <- data$rep_df
+summary_df <- data$summary_df
+p_inf      <- data$plots$infection_pct
+p_burd     <- data$plots$parasite_burden
+```
+
+Column {data-width=450}
+-----------------------------------------------------------------------
+
+### Infection %
+
+```{r}
+if (!is.null(p_inf)) p_inf
+```
+
+### Parasite burden
+
+```{r}
+if (!is.null(p_burd)) p_burd
+```
+
+Column {data-width=550}
+-----------------------------------------------------------------------
+
+### Replicate data
+
+```{r}
+DT::datatable(rep_df,  filter = "top")
+```
+
+### Summary (mean ± sd)
+
+```{r}
+DT::datatable(summary_df,  filter = "top", rownames = FALSE)
+```

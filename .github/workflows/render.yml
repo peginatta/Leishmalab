@@ -2,7 +2,7 @@ name: Render all dashboards
 
 on:
   push:
-    paths: ["projects/**.Rmd"]
+    paths: ["projects/**/*.Rmd"]
   workflow_dispatch:
 
 jobs:

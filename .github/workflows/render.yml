@@ -40,7 +40,6 @@ jobs:
               message("Rendering ", f, " -> ", out_dir)
               rmarkdown::render(f, output_dir = out_dir, quiet = TRUE)
             }
-RSCRIPT
 
       # ---- create index.html at project root ------------------------------
       - name: Build index pages
@@ -62,7 +61,7 @@ RSCRIPT
           }
           dir.create("docs", showWarnings = FALSE)
           make_index("docs", "Projects")
-RSCRIPT
+
 
       # ---- commit site back to repo ---------------------------------------
       - name: Commit & push rendered site

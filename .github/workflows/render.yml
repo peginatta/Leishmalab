@@ -41,7 +41,6 @@ jobs:
               rmarkdown::render(f, output_dir = out_dir, quiet = TRUE)
             }
 
-      # ---- create index.html at project root ------------------------------
       - name: Build index pages
         run: Rscript - <<'RSCRIPT'
           make_index <- function(base, title) {
@@ -63,7 +62,6 @@ jobs:
           make_index("docs", "Projects")
 
 
-      # ---- commit site back to repo ---------------------------------------
       - name: Commit & push rendered site
         run: |
           git config user.name  github-actions
